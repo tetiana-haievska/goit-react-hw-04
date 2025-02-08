@@ -53,6 +53,8 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [modalImage, setModalImage] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  // const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     if (!query) return;
@@ -71,7 +73,16 @@ const App = () => {
           },
         });
 
-        setImages((prevImages) => [...prevImages, ...response.data.results]);
+        if (response.data.results.length === 0) {
+          setError("No images found. Try another search.");
+          return;
+        }
+
+        setImages((prevImages) =>
+          page === 1
+            ? response.data.results
+            : [...prevImages, ...response.data.results]
+        );
       } catch {
         setError("Failed to fetch images. Please try again.");
       } finally {
@@ -83,6 +94,12 @@ const App = () => {
   }, [query, page]);
 
   const handleSearch = (newQuery) => {
+    if (newQuery.trim() === "") {
+      setError("Enter a search query!");
+      return;
+    }
+    if (newQuery === query) return;
+
     setQuery(newQuery);
     setImages([]);
     setPage(1);
@@ -92,11 +109,18 @@ const App = () => {
     setPage((prevPage) => prevPage + 1);
   };
 
-  const openModal = (image) => {
+  const handleImageClick = (image) => {
+    if (isModalOpen) return; // Prevent opening the modal if it's already open
     setModalImage(image);
+    setIsModalOpen(true);
   };
 
+  // const openModal = (image) => {
+  //   setModalImage(image);
+  // };
+
   const closeModal = () => {
+    setIsModalOpen(false);
     setModalImage(null);
   };
 
@@ -104,12 +128,18 @@ const App = () => {
     <div className={styles.app}>
       <SearchBar onSubmit={handleSearch} />
       {error && <ErrorMessage message={error} />}
-      <ImageGallery images={images} onImageClick={openModal} />
+      <ImageGallery images={images} onImageClick={handleImageClick} />
       {loading && <Loader />}
       {images.length > 0 && !loading && (
         <LoadMoreBtn onClick={handleLoadMore} />
       )}
-      {modalImage && <ImageModal image={modalImage} onClose={closeModal} />}
+      {isModalOpen && (
+        <ImageModal
+          isOpen={isModalOpen}
+          onRequestClose={closeModal}
+          image={modalImage}
+        />
+      )}
     </div>
   );
 };
